@@ -1,10 +1,10 @@
 import torch
 from sklearn.model_selection import train_test_split
 
-PATH = '/Users/bhanumamillapalli/Documents/Python/APS360_Project'
+PATH = '/Users/bhanumamillapalli/Documents/GitHub/APS360_Project_Music_Prediction'
 
-data = torch.load(PATH + '/dataset_final.pt')
-labels = torch.load(PATH + '/labels_final.pt')
+data = torch.load(PATH + '/dataset.pt')
+labels = torch.load(PATH + '/labels.pt')
 
 # Split the data into train/validation/test with 60/20/20 splits
 X_train, X_test, y_train, y_test = train_test_split(data,labels,test_size=0.2,random_state=1)

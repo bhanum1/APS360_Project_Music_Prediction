@@ -7,7 +7,7 @@ import random
 from sklearn.preprocessing import MinMaxScaler
 
 # Get data into list
-PATH = '/Users/bhanumamillapalli/Documents/Python/APS360_Project'
+PATH = '/Users/bhanumamillapalli/Documents/GitHub/APS360_Project_Music_Prediction'
 data = []
 with open(PATH + '/maestro-v3.0.0/maestro-v3.0.0.csv') as csvfile:
     csvreader = csv.reader(csvfile)
@@ -27,11 +27,11 @@ durations = []
 
 
 test = []
-i = 0
+j = 0
 for file in data[1:]:
-    i+=1
-    if i%1000 == 0:
-        print(i)
+    j+=1
+    if j%10 ==0:
+        print(j)
     file = PATH + '/maestro-v3.0.0/'+ file
     pm = pretty_midi.PrettyMIDI(file)
 
@@ -63,11 +63,9 @@ for file in data[1:]:
         starts.extend(sample_starts)
         durations.extend(sample_durations)
 
-
-
 scaler = MinMaxScaler(feature_range=(-1, 1), copy=True)
 normalized_starts = scaler.fit_transform(np.array(starts).reshape(-1,1))
-normalized_durations = scaler.fit_transform(np.array(durations).reshape(-1,1))
+normalized_durations = scaler.fit_transform(np.clip(np.array(durations).reshape(-1,1), 0,1))
 
 notes = []
 for i in range(len(pitches)):
