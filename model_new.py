@@ -17,15 +17,14 @@ val_labels = torch.load(PATH + '/val_labels.pt')
 
 
 # Batch the data
-#batch_size = 264
-batch_size = 4
-pitch_train_loader = data.DataLoader(data.TensorDataset(train_data[0:batch_size], train_labels[0:batch_size,0]), shuffle=True, batch_size = batch_size)
+batch_size = 264
+#batch_size = 4
+pitch_train_loader = data.DataLoader(data.TensorDataset(train_data, train_labels[:,0]), shuffle=True, batch_size = batch_size)
 note_start_train_loader = data.DataLoader(data.TensorDataset(train_data, train_labels[:,1]), shuffle=True, batch_size = batch_size)
 duration_train_loader = data.DataLoader(data.TensorDataset(train_data, train_labels[:,2]), shuffle=True, batch_size = batch_size)
-pitch_val_loader = data.DataLoader(data.TensorDataset(val_data[0:batch_size], val_labels[0:batch_size,0]), shuffle=True, batch_size = 2)
+pitch_val_loader = data.DataLoader(data.TensorDataset(val_data, val_labels[:,0]), shuffle=True, batch_size = 2)
 note_start_val_loader = data.DataLoader(data.TensorDataset(val_data, val_labels[:,1]), shuffle=True, batch_size = 2)
 duration_val_loader = data.DataLoader(data.TensorDataset(val_data, val_labels[:,2]), shuffle=True, batch_size = 2)
-
 
 # Define pitch network
 class PitchNet(nn.Module):
@@ -36,12 +35,14 @@ class PitchNet(nn.Module):
         self.input_dim = input_dim
 
         self.lstm = nn.LSTM(input_dim, hidden_dim, n_layers, batch_first=True)
+        self.fc1 = nn.Linear(88, 88)
 
     def forward(self, x, h):
         lstm_out, hidden = self.lstm(x,h)
-        function = nn.LogSoftmax(dim=2)
-        output = function(hidden[0])
-        pred = torch.argmax(F.softmax(hidden[0], dim=2),dim=2)
+        function = nn.LogSoftmax(dim=1)
+        output = F.relu(self.fc1(hidden[0][0,:,:]))
+        output = function(output)
+        pred = torch.argmax(F.softmax(output, dim=1),dim=1)
         return output, pred
     def init_hidden(self, batch_size):
         weight = next(self.parameters()).data
@@ -76,6 +77,7 @@ class NoteStartNet(nn.Module):
 
         return hidden
 
+
 # Define Duration Network
 class DurationNet(nn.Module):
     def __init__(self, input_dim, hidden_dim, n_layers = 1):
@@ -106,23 +108,25 @@ class DurationNet(nn.Module):
 
 #Create Pitch Network
 input_dim = 3
-hidden_dim = 88
+hidden_dim = 176
 
 model = PitchNet(input_dim, hidden_dim)
 
-criterion = nn.NLLLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
-epochs = 5
+criterion = nn.NLLLoss(reduction = 'sum')
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+epochs = 50
 
 #Train Pitch Network
-loss_values = []
+train_loss_values = []
 val_loss_values = []
+
 for i in range(epochs):
     print(i)
     model.train()
     h = model.init_hidden(batch_size)
 
     # Training
+    train_loss = 0
     for X_batch,y_batch in pitch_train_loader:
         h = tuple([e.data for e in h])
         output,pred = model.forward(X_batch,h)
@@ -131,10 +135,12 @@ for i in range(epochs):
         y_batch = y_batch.long()
 
         loss = criterion(output, y_batch)
-        loss_values.append(loss.detach().numpy())
+        train_loss += loss.detach().numpy()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+    
+    train_loss_values.append(train_loss/len(train_labels))
 
 
 # Validation
@@ -152,9 +158,14 @@ for i in range(epochs):
 
         loss = criterion(output, y_point)
         val_loss += loss.detach().numpy()
-    val_loss_values.append(val_loss)
+    val_loss_values.append(val_loss/len(val_labels))
 
-plt.plot(val_loss_values)
+plt.plot(train_loss_values, label="Train")
+plt.plot(val_loss_values,label="Validation")
+plt.title("Train vs Validation Error")
+plt.xlabel("Epoch")
+plt.ylabel("Error")
+plt.legend(loc='best')
 plt.show()
 
 model.eval()
@@ -164,6 +175,16 @@ output = torch.squeeze(output)
 
 print(pred, train_labels[0:batch_size, 0])
 
+
+# Validation accuracy
+h =  model.init_hidden(len(train_labels))
+output, pred = model.forward(train_data,h)
+correct = 0
+for index in range(len(pred)):
+    if train_labels[:,0][index] == pred[index]:
+        correct+=1
+
+print(correct/len(train_labels))
 '''
 # Create Note Start Network
 input_dim = 3
@@ -171,11 +192,11 @@ hidden_dim = 12
 
 model = NoteStartNet(input_dim, hidden_dim)
 
-criterion = nn.MSELoss()
+criterion = nn.MSELoss(reduction = "sum")
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-epochs = 15
+epochs = 50
 
-loss_values = []
+train_loss_values = []
 val_loss_values = []
 for i in range(epochs):
     print(i)
@@ -183,17 +204,18 @@ for i in range(epochs):
     h = model.init_hidden(batch_size)
 
     # Training
+    train_loss = 0
     for X_batch,y_batch in note_start_train_loader:
         h = tuple([e.data for e in h])
         output = model.forward(X_batch,h)
 
         output = torch.squeeze(output)
         loss = criterion(output, y_batch)
-        loss_values.append(loss.detach().numpy())
+        train_loss += loss.detach().numpy()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
+    train_loss_values.append(train_loss/len(train_labels))
     
     model.eval()
     h = model.init_hidden(2)
@@ -205,11 +227,17 @@ for i in range(epochs):
         output = torch.squeeze(output)
         loss = criterion(output, y_point)
         val_loss += loss.detach().numpy()
-    val_loss_values.append(val_loss)
-    
-plt.plot(val_loss_values)
+    val_loss_values.append(val_loss/len(val_labels))
+
+plt.plot(train_loss_values, label="Train")
+plt.plot(val_loss_values,label="Validation")
+plt.title("Train vs Validation Error")
+plt.xlabel("Epoch")
+plt.ylabel("Error")
+plt.legend(loc='best')
 plt.show()
 
+print("Note start loss: ", val_loss_values[-1] * len(val_labels))
 
 model.eval()
 h = model.init_hidden(batch_size)
@@ -217,6 +245,7 @@ output = model.forward(train_data[0:batch_size],h)
 output = torch.squeeze(output)
 
 print(output, train_labels[0:batch_size, 1])
+
 
 
 # Create Duration Network
@@ -227,9 +256,9 @@ model = DurationNet(input_dim, hidden_dim)
 
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-epochs = 15
+epochs = 50
 
-loss_values = []
+train_loss_values = []
 val_loss_values = []
 for i in range(epochs):
     print(i)
@@ -237,17 +266,19 @@ for i in range(epochs):
     h = model.init_hidden(batch_size)
 
     # Training
+    train_loss = 0
     for X_batch,y_batch in duration_train_loader:
         h = tuple([e.data for e in h])
         output = model.forward(X_batch,h)
 
         output = torch.squeeze(output)
         loss = criterion(output, y_batch)
-        loss_values.append(loss.detach().numpy())
+        train_loss += loss.detach().numpy()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
+    train_loss_values.append(train_loss/len(train_labels))
 
     model.eval()
     h = model.init_hidden(2)
@@ -259,10 +290,17 @@ for i in range(epochs):
         output = torch.squeeze(output)
         loss = criterion(output, y_point)
         val_loss += loss.detach().numpy()
-    val_loss_values.append(val_loss)
+    val_loss_values.append(val_loss/len(val_labels))
 
-plt.plot(val_loss_values)
+plt.plot(train_loss_values, label="Train")
+plt.plot(val_loss_values,label="Validation")
+plt.title("Train vs Validation Error")
+plt.xlabel("Epoch")
+plt.ylabel("Error")
+plt.legend(loc='best')
 plt.show()
+
+print("Note duration loss: ", val_loss_values[-1] * len(val_labels))
 
 model.eval()
 h = model.init_hidden(batch_size)

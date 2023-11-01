@@ -75,7 +75,7 @@ for i in range(len(pitches)):
         labels.append([pitches[i], normalized_starts[i][0], normalized_durations[i][0]])
     else:
         notes.append([pitches[i], normalized_starts[i][0], normalized_durations[i][0]])
-    
+
 dataset = torch.FloatTensor(data_points)
 labels = torch.FloatTensor(labels)
 
