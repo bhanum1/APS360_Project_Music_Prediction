@@ -72,11 +72,10 @@ line3, = plt.plot(durations, label = "durations")
 leg = plt.legend(loc='upper center')
 plt.title("Before Normalization")
 
-
-
 scaler = MinMaxScaler(feature_range=(-1, 1), copy=True)
 normalized_starts = scaler.fit_transform(np.array(starts).reshape(-1,1))
 normalized_durations = scaler.fit_transform(np.clip(np.array(durations).reshape(-1,1), 0,1))
+
 
 figure1 = plt.figure()
 figure1
