@@ -108,7 +108,7 @@ class DurationNet(nn.Module):
 
 #Create Pitch Network
 input_dim = 3
-hidden_dim = 176
+hidden_dim = 88
 
 model = PitchNet(input_dim, hidden_dim)
 
