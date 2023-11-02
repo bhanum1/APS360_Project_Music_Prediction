@@ -3,7 +3,7 @@ import torch
 import csv
 import pretty_midi
 import random
-
+import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 
 # Get data into list
@@ -63,9 +63,28 @@ for file in data[1:]:
         starts.extend(sample_starts)
         durations.extend(sample_durations)
 
+figure1 = plt.figure()
+figure1
+line1, = plt.plot(pitches, label="pitches")
+line2, = plt.plot(starts, label="start times")
+line3, = plt.plot(durations, label = "durations")
+leg = plt.legend(loc='upper center')
+plt.title("Before Normalization")
+
+
 scaler = MinMaxScaler(feature_range=(-1, 1), copy=True)
 normalized_starts = scaler.fit_transform(np.array(starts).reshape(-1,1))
 normalized_durations = scaler.fit_transform(np.clip(np.array(durations).reshape(-1,1), 0,1))
+
+
+
+figure2 = plt.figure()
+figure2
+line1, = plt.plot(pitches, label="pitches")
+line2, = plt.plot(normalized_starts, label="normalized start times")
+line3, = plt.plot(normalized_durations, label = "normalized durations")
+leg = plt.legend(loc='upper center')
+plt.title("After Normalization")
 
 notes = []
 for i in range(len(pitches)):
