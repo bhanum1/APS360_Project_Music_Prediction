@@ -66,10 +66,10 @@ for file in data[1:]:
 
 figure1 = plt.figure()
 figure1
-line1, = plt.plot(pitches, label="pitches")
-line2, = plt.plot(starts, label="start times")
-line3, = plt.plot(durations, label = "durations")
-leg = plt.legend(loc='upper center')
+line1, = plt.plot(pitches, label="Pitches")
+line2, = plt.plot(starts, label="Start times")
+line3, = plt.plot(durations, label = "Durations")
+leg = plt.legend(loc='best')
 plt.title("Before Normalization")
 
 scaler = MinMaxScaler(feature_range=(-1, 1), copy=True)
@@ -79,10 +79,10 @@ normalized_durations = scaler.fit_transform(np.clip(np.array(durations).reshape(
 
 figure1 = plt.figure()
 figure1
-line1, = plt.plot(pitches, label="pitches")
-line2, = plt.plot(normalized_starts, label="normalized start times")
-line3, = plt.plot(normalized_durations, label = "normalized durations")
-leg = plt.legend(loc='upper center')
+line1, = plt.plot(pitches, label="Pitches")
+line2, = plt.plot(normalized_starts, label="Normalized start times")
+line3, = plt.plot(normalized_durations, label = "Normalized durations")
+leg = plt.legend(loc='Best')
 plt.title("After Normalization")
 
 notes = []
