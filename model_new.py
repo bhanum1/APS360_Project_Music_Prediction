@@ -114,7 +114,7 @@ model = PitchNet(input_dim, hidden_dim)
 
 criterion = nn.NLLLoss(reduction = 'sum')
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-epochs = 50
+epochs = 10
 
 #Train Pitch Network
 train_loss_values = []
@@ -177,14 +177,14 @@ print(pred, train_labels[0:batch_size, 0])
 
 
 # Validation accuracy
-h =  model.init_hidden(len(train_labels))
-output, pred = model.forward(train_data,h)
+h =  model.init_hidden(len(val_labels))
+output, pred = model.forward(val_data,h)
 correct = 0
 for index in range(len(pred)):
-    if train_labels[:,0][index] == pred[index]:
+    if val_labels[:,0][index] == pred[index]:
         correct+=1
 
-print(correct/len(train_labels))
+print(correct/len(val_labels))
 '''
 # Create Note Start Network
 input_dim = 3
