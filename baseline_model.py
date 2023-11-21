@@ -14,19 +14,19 @@ PATH = '/Users/bhanumamillapalli/Documents/GitHub/APS360_Project_Music_Predictio
 torch.manual_seed(100)
 
 # Load all the data
-train_data = torch.load(PATH + '/train_data.pt')
-train_labels = torch.load(PATH + '/train_labels.pt')
-val_data = torch.load(PATH + '/val_data.pt')
-val_labels = torch.load(PATH + '/val_labels.pt')
+train_data = torch.load(PATH + '/data/train_data.pt')
+train_labels = torch.load(PATH + '/data/train_labels.pt')
+val_data = torch.load(PATH + '/data/val_data.pt')
+val_labels = torch.load(PATH + '/data/val_labels.pt')
 
 train_pitches = train_data[:,:,0]
 train_starts = train_data[:,:,1]
-train_durations = train_data[:,:,2]
+train_durations = train_data[:100,:,2]
 val_pitches = val_data[:,:,0]
 val_starts = val_data[:,:,1]
 val_durations = val_data[:,:,2]
 
-
+'''
 #Baseline Random Forest for pitch
 clf = RandomForestClassifier()
 clf.fit(train_pitches, train_labels[:,0])
@@ -40,7 +40,7 @@ print("SVM Classifier Pitch Accuracy: ", clf.score(val_pitches, val_labels[:,0])
 
 
 
-'''
+
 # Baseline Random Forest for start
 reg = RandomForestRegressor()
 reg.fit(train_starts, train_labels[:,1])
@@ -73,14 +73,17 @@ for i in range(len(pred)):
 
 print("SVM Regressor Note Start Loss: ", loss)
 
+'''
 
 # Baseline SVM for duration
-reg = svm.SVR()
-reg.fit(train_durations, train_labels[:,2])
+reg = RandomForestRegressor()
+print('fitting...')
+reg.fit(train_durations, train_labels[:100,2])
+print('fit done')
 pred = reg.predict(val_durations)
 
 loss = 0
+print(len(pred))
 for i in range(len(pred)):
     loss += (val_labels[:,2][i] - pred[i])**2 #MSE
-print("SVM Regressor Note Duration Loss: ", loss)
-'''
+print("Forest Regressor Note Duration Loss: ", loss)

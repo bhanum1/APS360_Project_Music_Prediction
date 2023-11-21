@@ -9,10 +9,10 @@ PATH = '/Users/bhanumamillapalli/Documents/GitHub/APS360_Project_Music_Predictio
 torch.manual_seed(100)
 
 # Load all the data
-train_data = torch.load(PATH + '/train_data.pt')
-train_labels = torch.load(PATH + '/train_labels.pt')
-val_data = torch.load(PATH + '/val_data.pt')
-val_labels = torch.load(PATH + '/val_labels.pt')
+train_data = torch.load(PATH + '/data/train_data.pt')
+train_labels = torch.load(PATH + '/data/train_labels.pt')
+val_data = torch.load(PATH + '/data/val_data.pt')
+val_labels = torch.load(PATH + '/data/val_labels.pt')
 
 
 
@@ -185,6 +185,7 @@ for index in range(len(pred)):
         correct+=1
 
 print(correct/len(val_labels))
+
 '''
 # Create Note Start Network
 input_dim = 3
