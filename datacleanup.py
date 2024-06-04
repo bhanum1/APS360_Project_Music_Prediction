@@ -23,7 +23,7 @@ labels = []
 unnorm_labels = []
 # Convert sample file into pm object
 sample_size = 50
-num_samples = 100
+num_samples = 50
 
 #generate empty lists
 pitches = []
@@ -72,15 +72,7 @@ for file in data[1:]:
         starts.extend(sample_starts)
         durations.extend(sample_durations)
 
-figure1 = plt.figure()
-figure1
-line2, = plt.plot(starts, label="Start times")
-line3, = plt.plot(durations, label = "Durations")
-leg = plt.legend(loc='best')
-plt.title("Before Normalization")
-plt.show()
-
-scaler = MinMaxScaler(feature_range=(-1, 1), copy=True)
+scaler = MinMaxScaler(feature_range=(0, 1), copy=True)
 normalized_starts = scaler.fit_transform(np.array(starts).reshape(-1,1))
 normalized_durations = scaler.fit_transform(np.clip(np.array(durations).reshape(-1,1), 0,1))
 

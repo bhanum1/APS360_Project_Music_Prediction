@@ -21,7 +21,7 @@ val_labels = torch.load(PATH + '/data/val_labels.pt')
 #################
 
 #pitch
-pitch_network_type = 'LSTM' #Either LSTM or GRU
+pitch_network_type = 'GRU' #Either LSTM or GRU
 pitch_hidden_size = 88
 pitch_dropout_ratio = 0.2
 pitch_learning_rate = 1E-4
@@ -121,43 +121,31 @@ class Start_ANN(nn.Module):
     return out
 
 # Define the duration model
-class Duration_RNN(nn.Module):
-  def __init__(self, hidden_size, n_layers=duration_n_layers):
-    super(Duration_RNN, self).__init__()
+class Duration_ANN(nn.Module):
+  def __init__(self, layer1 = start_layer1, layer2 = start_layer2):
+    super(Duration_ANN, self).__init__()
 
-    #rnn
-    if duration_network_type == 'LSTM':
-        self.rnn = nn.LSTM(2, hidden_size, n_layers, batch_first=True)
-    elif duration_network_type == 'GRU':
-        self.rnn = nn.GRU(2, hidden_size, n_layers, batch_first=True)
-    else:
-       print('Please choose a valid network type (GRU or LSTM)')
-
-    # classifier
-    self.fc = nn.Linear(hidden_size * 2, 1)
+    # fully connected layers
+    self.fc1 = nn.Linear(100, layer1)
+    self.fc2 = nn.Linear(layer1, layer2)
+    self.fc3 = nn.Linear(layer2, 1)
 
   def forward(self, x):
     # define dropout
     m = nn.Dropout(p=duration_dropout_ratio)
-    
-    # take only the start and durations as input
-    input = x[:,:,1:]
 
-    #apply dropout
-    out, _ = self.rnn(m(input))
-
-    out = torch.cat([torch.max(out, dim=1)[0],
-                    torch.mean(out, dim=1)], dim=1)
-
-    out = F.relu(self.fc(out))
+    # take only the start and durations as input and flatten it
+    input = x[:,:,1:].reshape(duration_batch_size, 100)
+    #apply dropout and all layers
+    out = F.sigmoid(self.fc3(F.relu(self.fc2(F.relu(self.fc1(m(input)))))))
     
     return out
 #create networks
 pitch_net = Pitch_RNN(pitch_hidden_size)
 start_net = Start_ANN()
-duration_net = Duration_RNN(duration_hidden_size)
+duration_net = Duration_ANN()
 
-'''
+
 # Pitch training
 optimizer = torch.optim.Adam(pitch_net.parameters(), lr=pitch_learning_rate)
 criterion = nn.CrossEntropyLoss()
@@ -195,7 +183,8 @@ for epoch in range(pitch_epochs):
         num_examples += len(y_batch)
 
     val_loss.append(total_val_loss/num_examples)
-
+    
+    '''
     # Training & validation accuracy
     pred = torch.argmax(F.softmax(pitch_net(train_data), dim = 1), dim=1)
     train_correct = 0
@@ -211,10 +200,11 @@ for epoch in range(pitch_epochs):
 
     train_acc.append(train_correct/len(train_data))
     val_acc.append(val_correct/len(val_data))
-
+    '''
     print("Epoch %d; Train Loss %f; Val Loss %f; Train Acc %f; Val Acc %f" % (
-            epoch+1, train_loss[-1], val_loss[-1], train_acc[-1], val_acc[-1]))
+            epoch+1, train_loss[-1], val_loss[-1], 0, 0))
 
+'''
 # start time training
 optimizer = torch.optim.Adam(start_net.parameters(), lr=start_learning_rate)
 criterion = nn.MSELoss()
@@ -253,9 +243,8 @@ for epoch in range(start_epochs):
 
     print("Epoch %d; Train Loss %f; Val Loss %f" % (
             epoch+1, train_loss[-1], val_loss[-1]))
-'''
 
-# start time training
+# duration training
 optimizer = torch.optim.Adam(duration_net.parameters(), lr=duration_learning_rate)
 criterion = nn.MSELoss()
 
@@ -267,14 +256,14 @@ for epoch in range(duration_epochs):
     total_train_loss = 0
     num_examples = 0
     for X_batch, y_batch in duration_train_loader:
-        optimizer.zero_grad()
-        pred = duration_net(X_batch).squeeze()
-        y_batch = y_batch
-        loss = criterion(pred, y_batch) * 1E6
-        total_train_loss += loss.detach().numpy()
-        num_examples += len(y_batch)
-        loss.backward()
-        optimizer.step()
+        if X_batch.shape[0] == start_batch_size:
+            optimizer.zero_grad()
+            pred = duration_net(X_batch).squeeze()
+            loss = criterion(pred, y_batch) * 1E6
+            total_train_loss += loss.detach().numpy()
+            num_examples += len(y_batch)
+            loss.backward()
+            optimizer.step()
 
     train_loss.append(total_train_loss/num_examples)
     
@@ -283,11 +272,11 @@ for epoch in range(duration_epochs):
     total_val_loss = 0
     num_examples = 0
     for X_batch, y_batch in duration_val_loader:
-        pred = duration_net(X_batch).squeeze()
-        y_batch = y_batch
-        loss = criterion(pred, y_batch) * 1E6
-        total_val_loss += loss.detach().numpy()
-        num_examples += len(y_batch)
+        if X_batch.shape[0] == start_batch_size:
+            pred = start_net(X_batch).squeeze()
+            loss = criterion(pred, y_batch) * 1E6
+            total_val_loss += loss.detach().numpy()
+            num_examples += len(y_batch)
 
     val_loss.append(total_val_loss/num_examples)
 
@@ -295,8 +284,27 @@ for epoch in range(duration_epochs):
             epoch+1, train_loss[-1], val_loss[-1]))
 
 
-pred = duration_net(val_data)
-final_val_loss = 0
+pred = []
+total_loss = 0
+for X_batch, y_batch in start_val_loader:
+        if X_batch.shape[0] == start_batch_size:
+            pred = start_net(X_batch).squeeze()
+            loss = criterion(pred, y_batch)
+            total_loss += loss.detach().numpy()
+
+print("Validation Start Loss: ", total_loss)
+
+
+from sklearn.ensemble import RandomForestRegressor
+
+reg = RandomForestRegressor()
+print('fitting...')
+reg.fit(train_data[:100,1], train_labels[:100,1])
+print('fit done')
+pred = reg.predict(val_data[:,1])
+
+loss = 0
 for i in range(len(pred)):
-    final_val_loss += (val_labels[:,2][i] - pred[i])**2 #MSE
-print("Validation Note Duration Loss: ", loss)
+    loss += (val_labels[:,1][i] - pred[i])**2 #MSE
+print("Forest Regressor Note Duration Loss: ", loss)
+'''

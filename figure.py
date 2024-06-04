@@ -1,19 +1,41 @@
 import torch
 import matplotlib.pyplot as plt
-PATH = '/Users/bhanumamillapalli/Documents/GitHub/APS360_Project_Music_Prediction'
-
-train_data = torch.load(PATH + '/train_data.pt')
-train_starts = train_data[:,:,1]
-train_labels = torch.load(PATH + '/train_labels.pt')
-start_labels = train_labels[:,1]
+import numpy as np
+PATH = '/Users/bhanumamillapalli/Documents/GitHub/APS360_Project_Music_Prediction/data/'
 
 
-i = 15
-print(start_labels[i])
-data = list(train_starts[i])
-data.append(start_labels[i])
-plt.plot(data)
-plt.title("Note Starts Across Sequence")
-plt.xlabel("Index")
-plt.ylabel("Normalized Note Start Time")
+
+
+data= torch.load(PATH + '/train_data.pt')
+
+print(data.shape)
+
+
+
+'''
+pitches = data[:,:,0]
+starts = data[:,:,1]
+durations = data[:,:,2]
+
+
+pitches = pitches.reshape(-1)
+plt.hist(pitches, color = 'xkcd:off blue')
+plt.title("Distribution of Pitches")
+plt.xlabel("Pitch Value")
+plt.ylabel("Count")
+plt.show()
+
+starts = starts.reshape(-1)
+plt.hist(starts, color = 'xkcd:off blue')
+plt.title("Distribution of Start Times")
+plt.xlabel("Start Time")
+plt.ylabel("Count")
+plt.show()
+'''
+
+durations = durations.reshape(-1)
+plt.hist(durations, color = 'xkcd:off blue')
+plt.title("Normalized Distribution of Durations")
+plt.xlabel("Duration")
+plt.ylabel("Count")
 plt.show()
